@@ -1,0 +1,262 @@
+#########-----------------------------------------SCCA ANALYSIS- MORPHOMETRY---------------------------------------####
+#THIS IS HOW ANALYSIS WAS DONE FOR THE MORPHOMETRIC DATA; SIMILAR ANALYSES WERE PERFORMED FOR RESTING STATE FUNCTIONAL CONNECTIVITY, GRAY-WHITE MATTER CONTRAST AND DIFFUSION WEIGHTED IMAGING DATASETS
+
+#load packages
+library(matrixStats)
+library(mixOmics)
+library(car)
+library(parallel)
+library(plyr)
+library(dplyr)
+library(MASS)
+library(fabricatr)
+library(vegan)
+library(caret)
+library(RANN)
+library(CCA)
+
+# reading data file
+dftrain<-read.csv("dftrain_struct.csv")
+dftrain<-as.matrix(dftrain[,-1])
+dftest<-read.csv("dftest_struct.csv")
+dftest<-as.matrix(dftest[,-1])
+
+#loading permutation structures
+permlist_struct_train<-read.csv("permutationlist_struct_train.csv",header = F) 
+permlist_struct_test<-read.csv("permutationlist_struct_test.csv",header = F)
+
+Xtrain<-dftrain[,3:74]
+Xtest<-dftest[,3:74]
+Ytrain<-dftrain[,c(111:181,253:344)]
+Ytest<-dftest[,c(111:181,253:344)]
+ncomp=72
+nperm=10000
+
+#perform pca
+pcaclin<-pca(Xtrain,ncomp) 
+pcaimag<-pca(Ytrain,159)
+ncolx = ncol(pcaclin$variates$X)
+ncoly = ncol(pcaimag$variates$X)
+pcclintrainvar<-pcaclin$variates$X
+pcimagtrainvar<-pcaimag$variates$X
+pcclintrainweight<-pcaclin$loadings$X
+pcimagtrainweight<-pcaimag$loadings$X
+pcclintestvar<-Xtest%*%pcaclin$loadings$X
+pcimagtestvar<-Ytest%*%pcaimag$loadings$X
+
+#perform canonical correlation
+x<-cc(pcclintrainvar,pcimagtrainvar)
+#save all correlations
+cor_struct_train<-diag(cor(x$scores$xscores,x$scores$yscores))
+write.csv(cor_struct_train,"cor_struct_train.csv")
+
+#calculate loadings
+loadings_struct_train_clinical<-cor(Xtrain,x$scores$xscores,use="complete.obs")
+write.csv(loadings_struct_train_clinical,"loadings_struct_train_clinical.csv")
+loadings_struct_train_imaging<-cor(Ytrain,x$scores$yscores,use="complete.obs")
+write.csv(loadings_struct_train_imaging,"loadings_struct_train_imaging.csv")
+
+#save weights 
+weights_struct_train_clinical<-x$xcoef
+weights_struct_train_imaging<-x$ycoef
+
+
+#do permutations by using the feature weights from the original discovery set
+numCores <- detectCores()
+perm<-1:nperm
+corperm_test<-matrix(0,nperm,ncomp)
+corperm_train<-matrix(0,nperm,ncomp)
+#test cor
+cor_struct_test<-diag(cor(pcclintestvar%*%x$xcoef,pcimagtestvar%*%x$ycoef,use="complete.obs" ))
+write.csv(cor_struct_test,"cor_struct_test.csv")
+permfunc<-function(perm) {
+  testpsych = list()
+  testpsych$X1<-as.matrix(pcclintestvar[permlist_struct_test[,perm],])
+  testpsych$Y1<-as.matrix(pcimagtestvar)
+  corperm_test[perm,]<-diag(cor(testpsych$X1%*%x$xcoef,testpsych$Y1%*%x$ycoef,use="complete.obs" ))
+}
+
+results <- mclapply(perm, permfunc, mc.cores = numCores-10)
+corperm_mat<-matrix(unlist(results),ncomp,nperm)
+pval_struct_test<- c()
+for (i in 1:ncomp) {
+  pval_struct_test[i] <-
+    length(which (corperm_mat[i, ] >= 
+                    cor_struct_test[i])) / nperm
+}
+write.csv(pval_struct_test,"pval_struct_test_BasedOnTrainWeights.csv")
+
+
+
+
+#do permutations by using the feature weights on the permutated discovery set (on the test set)
+numCores <- detectCores()
+perm<-1:nperm
+corperm_test<-matrix(0,nperm,ncomp)
+corperm_train<-matrix(0,nperm,ncomp)
+permfunc<-function(perm) {
+  temppsych = list()
+  temppsych$X1<-pcclintrainvar[permlist_struct_train[,perm],]
+  temppsych$Y1<-pcimagtrainvar
+  x<-cc(temppsych$X1,temppsych$Y1)
+  corperm_test[perm,]<-diag(cor(pcclintestvar%*%x$xcoef,pcimagtestvar%*%x$ycoef))
+}
+
+results <- mclapply(perm, permfunc, mc.cores = numCores-5)
+corperm_mat<-matrix(unlist(results),ncomp,nperm)
+pval_struct_test<- c()
+for (i in 1:ncomp) {
+  pval_struct_test[i] <-
+    length(which (corperm_mat[i, ] >= 
+                    cor_struct_test[i])) / nperm
+}
+write.csv(pval_struct_test,"pval_struct_test_BasedOnPermutedTrainCCA.csv")
+
+
+#do permutations by using the feature weights on the permutated discovery set (on the discovery set)
+permfunc<-function(perm) {
+  temppsych = list()
+  temppsych$X1<-pcclintrainvar[permlist_struct_train[,perm],]
+  temppsych$Y1<-pcimagtrainvar
+  x<-cc(temppsych$X1,temppsych$Y1)
+  corperm_train[perm,]<-diag(cor(temppsych$X1%*%x$xcoef,temppsych$Y1%*%x$ycoef ))
+  
+}
+
+results <- mclapply(perm, permfunc, mc.cores = numCores-5)
+corperm_mat<-matrix(unlist(results),ncomp,nperm)
+pval_struct_train<- c()
+for (i in 1:ncomp) {
+  pval_struct_train[i] <-
+    length(which (corperm_mat[i, ] >= 
+                    cor_struct_train[i])) / nperm
+}
+write.csv(pval_struct_train,"pval_struct_train.csv")
+
+
+
+#bootstrap resampling stability
+set.seed(123)
+perm=1:100
+boot_func<-function(perm) {
+  cor_boot_struct<-matrix(0,15,1)
+  sampleseq<- c(.1,.2,.3,.4,.5,.6,.7,.8,.9,1,1.1,1.2,1.3,1.4,1.5)
+  for (j in sampleseq) {
+    trainsamp<-sample(nrow(dftrain),size=ceiling(j*nrow(dftrain)),replace=TRUE)
+    trainlist = list()
+    trainlist$X1 = pcclintrainvar[trainsamp,]
+    trainlist$Y1 = pcimagtrainvar[trainsamp,]
+    x<-cc(trainlist$X1,trainlist$Y1)
+    cor_boot_struct[which(sampleseq==j),]<-cor(x$scores$xscores,x$scores$yscores)[1,1]
+  }
+  return(cor_boot_struct)
+}
+
+results <- mclapply(perm, boot_func, mc.cores = numCores-5)
+absresults<-lapply(results,abs)
+struct_resample<-t(matrix(unlist(absresults),15,100))
+write.csv(struct_resample,"struct_resample.csv")
+
+
+#Leave one site out
+origmat<-rbind(weights_struct_train_clinical,weights_struct_train_imaging)
+#Leave one site out
+loadingretest<-matrix(0,ncomp,22)
+for ( site in 1:22) {
+  trainlist = list()
+  trainlist$X1 = pcclintrainvar[dftrain[,"site"]!=site, ]
+  trainlist$Y1 = pcimagtrainvar[dftrain[,"site"]!=site,]
+  x<-cc(trainlist$X1,trainlist$Y1)
+  #realign the new weight matrix based on the correlation with the original weight matrix
+  newmat<-rbind(x$xcoef,x$ycoef)
+  cormat=cor(origmat, newmat,method="spearman")
+  order<-c()
+  order[1]<-which(abs(cormat)==max(abs(cor(origmat,newmat[,1],method="spearman"))),arr.ind=TRUE)[[1]]
+  for ( i in 2:ncol(newmat)) {
+    k=1
+    while (which(abs(cormat)==sort(abs(cor(origmat,newmat[,i],method="spearman")),decreasing=TRUE)[k],arr.ind=T)[1] %in% order) {
+      k=k+1}
+    order[i]<-which(abs(cormat)==sort(abs(cor(origmat,newmat[,i],method="spearman")),decreasing=TRUE)[k],arr.ind=T)[1]
+    
+  }
+  loadingretest[,site]<-abs(diag(cor(rbind(weights_struct_train_clinical,weights_struct_train_imaging),rbind(x$xcoef[,order],x$ycoef[,order]))))
+  
+}
+
+write.csv(loadingretest,"leavesiteout_struct.csv")
+
+
+
+
+
+numCores <- detectCores()
+perm<-1:nperm
+corperm_test<-matrix(0,nperm,ncomp)
+corperm_train<-matrix(0,nperm,ncomp)
+#test cor
+cor_struct_test<-diag(cor(pcclintestvar%*%x$xcoef,pcimagtestvar%*%x$ycoef,use="complete.obs" ))
+write.csv(cor_struct_test,"cor_struct_test.csv")
+origmat<-rbind(weights_struct_train_clinical,weights_struct_train_imaging)
+
+#split resampling reliability -test set
+set.seed(123)
+perm=1:1000
+boot_func<-function(perm) {
+#0.8 is being used instead of 0.85, because given than we are randomly sampling based on family IDs and not individuals, 0.8 gives us roughly 85% of the cases
+  trainsamp<-which(dftrain[,'family_id_final'] %in%  sample(dftrain[,'family_id_final'],size=0.8*nrow(dftrain),replace=FALSE)==TRUE)
+  trainlist = list()
+  testlist=list()
+  trainlist$X1 = pcclintrainvar[trainsamp,]
+  trainlist$Y1 = pcimagtrainvar[trainsamp,]
+  x<-cc(trainlist$X1,trainlist$Y1)
+  newmat<-rbind(x$xcoef,x$ycoef)
+  testlist$X1 = pcclintrainvar[-trainsamp,]
+  testlist$Y1 = pcimagtrainvar[-trainsamp,]
+  cormat=cor(origmat, newmat,method="spearman")
+  order<-c()
+  order[1]<-which(abs(cormat)==max(abs(cor(origmat,newmat[,1],method="spearman"))),arr.ind=TRUE)[[1]]
+  for ( i in 2:ncol(newmat)) {
+    k=1
+    while (which(abs(cormat)==sort(abs(cor(origmat,newmat[,i],method="spearman")),decreasing=TRUE)[k],arr.ind=T)[1] %in% order) {
+      k=k+1}
+    order[i]<-which(abs(cormat)==sort(abs(cor(origmat,newmat[,i],method="spearman")),decreasing=TRUE)[k],arr.ind=T)[1]
+    
+  }
+  corperm_train<-diag(cor(testlist$X1%*%x$xcoef[,order],testlist$Y1%*%x$ycoef[,order]))
+}
+results <- mclapply(perm, boot_func, mc.cores = numCores-5)
+struct_resample<-t(matrix(unlist(results),ncomp,1000))
+write.csv(struct_resample[,1],"cor8515test_structresample.csv")
+
+
+
+
+#split resampling reliability discovery set
+set.seed(123)
+perm=1:1000
+boot_func<-function(perm) {
+  trainsamp<-which(dftrain[,'family_id_final'] %in%  sample(dftrain[,'family_id_final'],size=0.8*nrow(dftrain),replace=FALSE)==TRUE)
+  trainlist = list()
+  testlist=list()
+  trainlist$X1 = pcclintrainvar[trainsamp,]
+  trainlist$Y1 = pcimagtrainvar[trainsamp,]
+  x<-cc(trainlist$X1,trainlist$Y1)
+  newmat<-rbind(x$xcoef,x$ycoef)
+  testlist$X1 = pcclintrainvar[-trainsamp,]
+  testlist$Y1 = pcimagtrainvar[-trainsamp,]
+  cormat=cor(origmat, newmat,method="spearman")
+  order<-c()
+  order[1]<-which(abs(cormat)==max(abs(cor(origmat,newmat[,1],method="spearman"))),arr.ind=TRUE)[[1]]
+  for ( i in 2:ncol(newmat)) {
+    k=1
+    while (which(abs(cormat)==sort(abs(cor(origmat,newmat[,i],method="spearman")),decreasing=TRUE)[k],arr.ind=T)[1] %in% order) {
+      k=k+1}
+    order[i]<-which(abs(cormat)==sort(abs(cor(origmat,newmat[,i],method="spearman")),decreasing=TRUE)[k],arr.ind=T)[1]
+    
+  }
+  corperm_train<-diag(cor(trainlist$X1%*%x$xcoef[,order],trainlist$Y1%*%x$ycoef[,order]))
+}
+results <- mclapply(perm, boot_func, mc.cores = numCores-5)
+struct_resample<-t(matrix(unlist(results),ncomp,1000))
+write.csv(struct_resample[,1],"cor8515train_structresample.csv")
+
