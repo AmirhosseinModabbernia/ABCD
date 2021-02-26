@@ -14,7 +14,7 @@ setwd("/Volumes/Toshiba/ABCD_release3/ABCDStudyNDA")  #comment this when you set
 
 ###how to create git version control
 #see here: https://hansenjohnson.org/post/sync-github-repository-with-existing-r-project/
-
+#need to add ssh key this way
 
 library(car)
 library(stringr)
