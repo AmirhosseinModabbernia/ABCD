@@ -14,7 +14,8 @@ setwd("/Volumes/Toshiba/ABCD_release3/ABCDStudyNDA")  #comment this when you set
 
 ###how to create git version control
 #see here: https://hansenjohnson.org/post/sync-github-repository-with-existing-r-project/
-#need to add ssh key this way
+#need to add ssh key this way:
+#for git errors : https://stackoverflow.com/questions/22532943/how-to-resolve-git-error-updates-were-rejected-because-the-tip-of-your-current
 
 library(car)
 library(stringr)
@@ -41,8 +42,8 @@ dibf01[,3:16]<-lapply(dibf01[,3:16],function(x) {ifelse(x==999, NA,x)})
 dibf01[,3:16]<-lapply(dibf01[,3:16],function(x) {ifelse(x==-1, NA,x)})
 dibf01$kbi_p_grades_in_school<-ifelse(dibf01$kbi_p_grades_in_school==6, NA,dibf01$kbi_p_grades_in_school)
 
-dibf01[,c("kbi_p_c_det_susp","kbi_p_c_best_friend","kbi_p_c_reg_friend_group"	,"kbi_p_c_mh_sa")]<-
-  lapply(dibf01[,c("kbi_p_c_det_susp","kbi_p_c_best_friend","kbi_p_c_reg_friend_group"	,"kbi_p_c_mh_sa")],
+dibf01[,c("kbi_p_c_det_susp","kbi_p_c_best_friend","kbi_p_c_reg_friend_group" ,"kbi_p_c_mh_sa")]<-
+  lapply(dibf01[,c("kbi_p_c_det_susp","kbi_p_c_best_friend","kbi_p_c_reg_friend_group"  ,"kbi_p_c_mh_sa")],
          function(x) {ifelse(x==3, NA,x)})
 
 
@@ -405,7 +406,35 @@ colnames(fun_conn)<-gsub("[.]", "_", colnames(fun_conn))
 
 
 
+######---------------------------------------Fitbit Physical Activity ------------------------######
+abcd_fbwpas01<-read.delim("abcd_fbwpas01.txt")
+abcd_fbwpas01<-abcd_fbwpas01[-1,]
+names(abcd_fbwpas01)
+abcd_fbwpas01<-abcd_fbwpas01[,c(4,9,11:34)]
+abcd_fbwpas01[,-c(1:2)]<-sapply(abcd_fbwpas01[,-c(1:2)], as.character)
+abcd_fbwpas01[,-c(1:2)]<-sapply(abcd_fbwpas01[,-c(1:2)], as.numeric)
+summary(abcd_fbwpas01)
 
+######-----------------------------Game of dice---------------------------######
+abcd_gdss01 <- read.delim("abcd_gdss01.txt")
+abcd_gdss01<-abcd_gdss01[-1,]
+names(abcd_gdss01)
+abcd_gdss01<-abcd_gdss01[,c(4,9,17:26)]
+abcd_gdss01[,-c(1:2)]<-sapply(abcd_gdss01[,-c(1:2)], as.character)
+abcd_gdss01[,-c(1:2)]<-sapply(abcd_gdss01[,-c(1:2)], as.numeric)
+summary(abcd_gdss01)
+
+
+#########---------------------Parent Reported-Family Conflict Subscale (ongoing)------------------------------------######
+fes02 <- read.delim("fes02.txt")
+fes02<-fes02[-1,]
+names(fes02)
+fes02<-fes02[,c(4,9,10:18)]
+fes02[,-c(1:2)]<-sapply(fes02[,-c(1:2)], as.character)
+fes02[,-c(1:2)]<-sapply(fes02[,-c(1:2)], as.numeric)
+summary(fes02)
+fes02$family_conflict_parents<-rowSums(fes02[,3:11])
+fes02<-fes02[,c(1,12)]
 
 
 
