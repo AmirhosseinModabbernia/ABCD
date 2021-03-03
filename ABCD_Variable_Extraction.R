@@ -19,6 +19,8 @@ setwd("/Volumes/Toshiba/ABCD_release3/ABCDStudyNDA")  #comment this when you set
 
 library(car)
 library(stringr)
+library(rmatio)
+
 
 
 #######------------------------------demographics (site sex age)----------------------------------------------#####
@@ -28,6 +30,8 @@ abcd_lt01<-abcd_lt01[,c(4,7:10)]
 names(abcd_lt01)
 abcd_lt01[,2]<-sapply(abcd_lt01[,2], as.character)
 abcd_lt01[,2]<-sapply(abcd_lt01[,2], as.numeric)
+subjectkey_all<-subset(abcd_lt01,!duplicated(abcd_lt01$subjectkey,fromLast=FALSE)) 
+write.csv(subjectkey_all[,1],"subjectkey_all.csv",row.names = F )
 
 ######----------------------------------KSADS background items-functioning-service use-Parent------------------------------------#######
 dibf01<-read.delim("dibf01.txt")
@@ -54,7 +58,7 @@ dibf01[,c("kbi_p_c_det_susp","kbi_p_c_best_friend","kbi_p_c_reg_friend_group" ,"
 abcd_sscey01 <- read.delim("abcd_sscey01.txt")
 abcd_sscey01<-abcd_sscey01[-1,]
 names(abcd_sscey01)
-abcd_sscey01<-abcd_sscey01[,c(4,9,10,18,22,25,28,31,34,37,40,45,48,51,54,57,58)]
+abcd_sscey01<-abcd_sscey01[,c(4,9,10,13,18,22,25,28,31,34,37,40,45,48,51,54,57,58)]
 abcd_sscey01[,-c(1:2)]<-sapply(abcd_sscey01[,-c(1:2)], as.character)
 abcd_sscey01[,-c(1:2)]<-sapply(abcd_sscey01[,-c(1:2)], as.numeric)
 summary(abcd_sscey01)
@@ -94,18 +98,18 @@ pdem02<-pdem02[,c(1:2,4:6,15:18)]
 
 ######-----------------------------Family History----------------------------------######
 
-fhxp201p201 <-read.delim("fhxp201p201.txt")
-fhxp201p201<-fhxp201p201[-1,]
-names(fhxp201p201)
-fhxp201p201<-fhxp201p201[,c("subjectkey","fam_history_11_yes_no","fam_history_q11a_professional","fam_history_q11d_professional")]
-fhxp201p201[,-1]<-sapply(fhxp201p201[,-1], as.character)
-fhxp201p201[,-1]<-sapply(fhxp201p201[,-1], as.numeric)
-fhxp201p201[,-1]<-sapply(fhxp201p201[,-1], function(x) ifelse(x>3,NA,x))
-fhxp201p201$parental_psychopathology<-fhxp201p201$fam_history_q11a_professional+fhxp201p201$fam_history_q11d_professional
-fhxp201p201$parental_psychopathology<-ifelse(is.na(fhxp201p201$parental_psychopathology),
-                                     fhxp201p201$fam_history_11_yes_no,fhxp201p201$parental_psychopathology)
-summary(fhxp201p201)
-fhxp201p201<-fhxp201p201[,c(1,5)]
+fhxp201 <-read.delim("fhxp201.txt")
+fhxp201<-fhxp201[-1,]
+names(fhxp201)
+fhxp201<-fhxp201[,c("subjectkey","fam_history_11_yes_no","fam_history_q11a_professional","fam_history_q11d_professional")]
+fhxp201[,-1]<-sapply(fhxp201[,-1], as.character)
+fhxp201[,-1]<-sapply(fhxp201[,-1], as.numeric)
+fhxp201[,-1]<-sapply(fhxp201[,-1], function(x) ifelse(x>3,NA,x))
+fhxp201$parental_psychopathology<-fhxp201$fam_history_q11a_professional+fhxp201$fam_history_q11d_professional
+fhxp201$parental_psychopathology<-ifelse(is.na(fhxp201$parental_psychopathology),
+                                     fhxp201$fam_history_11_yes_no,fhxp201$parental_psychopathology)
+summary(fhxp201)
+fhxp201<-fhxp201[,c(1,5)]
 
 
 
@@ -125,8 +129,8 @@ summary(abcd_asrs01)
 abcd_abcls01 <- read.delim("abcd_abcls01.txt")
 abcd_abcls01<-abcd_abcls01[-1,]
 names(abcd_abcls01)
-abcd_abcls01 = abcd_abcls01[,!c(grepl("*_r",names(abcd_abcls01)) | grepl("*_nt",names(abcd_abcls01)) | grepl("*_total",names(abcd_abcls01))  | grepl("*_nm",names(abcd_abcls01)))]
-abcd_abcls01<-abcd_abcls01[,c(4,9,10:24)]
+abcd_abcls01 = abcd_abcls01[,!c(grepl("*_r",names(abcd_abcls01)) | grepl("*_nt",names(abcd_abcls01)) | grepl("*_nm",names(abcd_abcls01)))]
+abcd_abcls01<-abcd_abcls01[,c(4,9,10:26)]
 abcd_abcls01[,-(1:2)]<-sapply(abcd_abcls01[,-(1:2)], as.character)
 abcd_abcls01[,-(1:2)]<-sapply(abcd_abcls01[,-(1:2)], as.numeric)
 summary(abcd_abcls01)
@@ -160,7 +164,8 @@ abcd_peq01<-abcd_peq01[,c(1,2,21:22)]
 #####-------------------------------------Cognitive PCs------------------------------#####
 neurocogpcs<-read.csv("neurocogpcs.csv")
 neurocogpcs<-neurocogpcs[,-1]
-names(neurocogpcs)[1]<-"subjectkey"
+names(neurocogpcs)[4]<-"subjectkey"
+neurocogpcs<-subset(neurocogpcs,!duplicated(neurocogpcs$subjectkey,fromLast=FALSE)) 
 
 
 
@@ -265,6 +270,23 @@ abcd_ssphp01[is.na(abcd_ssphp01$puberty_p) & abcd_ssphp01$sex=="M",]$puberty_p<-
 abcd_ssphp01[is.na(abcd_ssphp01$puberty_p) & abcd_ssphp01$sex=="F",]$puberty_p<-abcd_ssphp01[is.na(abcd_ssphp01$puberty_p) & abcd_ssphp01$sex=="F",]$pds_p_ss_female_category
 abcd_ssphp01<-abcd_ssphp01[,c(1,3:10,13,16)]
 
+
+
+######-----------------------------------------------ksads-------------------------------------------#####
+####based on the matlab script for extracting KSADS diagnosis
+#healthy controls
+hc<-unique(as.vector(unlist(rmatio::read.mat('/Users/amirhosseinmodabbernia/Documents/Phd/Thesis/ABCD/ksad_grouping_RG/subjectkey_HC.mat'))))
+bipolar<-unique(as.vector(unlist(rmatio::read.mat('/Users/amirhosseinmodabbernia/Documents/Phd/Thesis/ABCD/ksad_grouping_RG/subjectkey_bipolar.mat'))))
+depression<-unique(as.vector(unlist(rmatio::read.mat('/Users/amirhosseinmodabbernia/Documents/Phd/Thesis/ABCD/ksad_grouping_RG/subjectkey_depression.mat'))))
+anxiety<-unique(as.vector(unlist(rmatio::read.mat('/Users/amirhosseinmodabbernia/Documents/Phd/Thesis/ABCD/ksad_grouping_RG/subjectkey_anxiety.mat'))))
+adhd<-unique(as.vector(unlist(rmatio::read.mat('/Users/amirhosseinmodabbernia/Documents/Phd/Thesis/ABCD/ksad_grouping_RG/subjectkey_ADHD.mat'))))
+conduct<-unique(as.vector(unlist(rmatio::read.mat('/Users/amirhosseinmodabbernia/Documents/Phd/Thesis/ABCD/ksad_grouping_RG/subjectkey_conductDisorder.mat'))))
+ocd<-unique(as.vector(unlist(rmatio::read.mat('/Users/amirhosseinmodabbernia/Documents/Phd/Thesis/ABCD/ksad_grouping_RG/subjectkey_OCD.mat'))))
+ptsd<-unique(as.vector(unlist(rmatio::read.mat('/Users/amirhosseinmodabbernia/Documents/Phd/Thesis/ABCD/ksad_grouping_RG/subjectkey_traumaStressor.mat'))))
+psychosis<-unique(as.vector(unlist(rmatio::read.mat('/Users/amirhosseinmodabbernia/Documents/Phd/Thesis/ABCD/ksad_grouping_RG/subjectkey_schizophrenia.mat'))))
+suicide<-unique(as.vector(unlist(rmatio::read.mat('/Users/amirhosseinmodabbernia/Documents/Phd/Thesis/ABCD/ksad_grouping_RG/subjectkey_Suicidal.mat'))))
+odd<-unique(as.vector(unlist(rmatio::read.mat('/Users/amirhosseinmodabbernia/Documents/Phd/Thesis/ABCD/ksad_grouping_RG/subjectkey_oppositionalDefiantDisorder.mat'))))
+ksads_positive<-unique(c(bipolar, depression, anxiety, adhd, conduct, ocd, ptsd, psychosis, suicide, odd))
 
 
 
