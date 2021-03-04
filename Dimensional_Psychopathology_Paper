@@ -1,0 +1,79 @@
+
+#DTI for ICA-derived
+
+library(bigKRLS)
+library(parallel)
+library(caret)
+numCores <- detectCores()
+dataset<-read.csv("ic_dti_imaging.csv")
+dataset<-as.matrix(dataset)
+dataset<-apply(dataset,2,as.numeric)
+nperm=100
+
+Xtrain=dataset[,c(31:32,75:77,84,97:99,101:102,104:141)]
+nvar=ncol(Xtrain)
+maxeigen<-eigen(cov(scale(Xtrain)))$values[1]
+pmat<-matrix(0,nperm,nvar)
+tmat<-matrix(0,nperm,nvar)
+
+set.seed(123)
+foldn=0
+for (i in 1:nperm) {
+fold<-createFolds(as.matrix(dataset[,"IC1"]), k = 2, list = TRUE, returnTrain = FALSE)
+foldn=foldn+1
+k.out <- bigKRLS(as.matrix(dataset[-fold[[2]],"IC1"]), as.matrix(Xtrain[-fold[[2]],]), U=maxeigen, Ncores=40,eigtrunc=0)
+pmat[foldn,]<-summary(k.out)[["ttests"]][,4]
+tmat[foldn,]<-summary(k.out)[["ttests"]][,3]
+}
+k.out <- bigKRLS(as.matrix(dataset[,"IC1"]), as.matrix(Xtrain), U=maxeigen, Ncores=40,eigtrunc=0)
+write.csv(summary(k.out)[["ttests"]],"ttestic1_dtiglobal.csv",row.names=FALSE)
+
+save.bigKRLS(k.out, "k.out100ic1_dtiglobal.csv",overwrite.existing=TRUE)
+
+write.csv(pmat,"pmatic1_dtiglobal.csv",row.names=FALSE)
+write.csv(tmat,"tmatic1_dtiglobal.csv",row.names=FALSE)
+
+
+pmat<-matrix(0,nperm,nvar)
+tmat<-matrix(0,nperm,nvar)
+r2mat<-c()
+r2testmat<-c()
+
+set.seed(123)
+foldn=0
+for (i in 1:nperm) {
+fold<-createFolds(as.matrix(dataset[,"IC2"]), k = 2, list = TRUE, returnTrain = FALSE)
+foldn=foldn+1
+k.out <- bigKRLS(as.matrix(dataset[-fold[[2]],"IC2"]), as.matrix(Xtrain[-fold[[2]],]), U=maxeigen, Ncores=40,eigtrunc=0)
+pmat[foldn,]<-summary(k.out)[["ttests"]][,4]
+tmat[foldn,]<-summary(k.out)[["ttests"]][,3]
+}
+k.out <- bigKRLS(as.matrix(dataset[,"IC2"]), as.matrix(Xtrain), U=maxeigen, Ncores=40,eigtrunc=0)
+write.csv(summary(k.out)[["ttests"]],"ttestic2_dtiglobal.csv",row.names=FALSE)
+
+save.bigKRLS(k.out, "k.out100ic2_dtiglobal.csv",overwrite.existing=TRUE)
+
+write.csv(pmat,"pmatic2_dtiglobal.csv",row.names=FALSE)
+write.csv(tmat,"tmatic2_dtiglobal.csv",row.names=FALSE)
+
+
+
+pmat<-matrix(0,nperm,nvar)
+tmat<-matrix(0,nperm,nvar)
+
+set.seed(123)
+foldn=0
+for (i in 1:nperm) {
+fold<-createFolds(as.matrix(dataset[,"IC3"]), k = 2, list = TRUE, returnTrain = FALSE)
+foldn=foldn+1
+k.out <- bigKRLS(as.matrix(dataset[-fold[[2]],"IC3"]), as.matrix(Xtrain[-fold[[2]],]), U=maxeigen, Ncores=40,eigtrunc=0)
+pmat[foldn,]<-summary(k.out)[["ttests"]][,4]
+tmat[foldn,]<-summary(k.out)[["ttests"]][,3]
+}
+k.out <- bigKRLS(as.matrix(dataset[,"IC3"]), as.matrix(Xtrain), U=maxeigen, Ncores=40,eigtrunc=0)
+write.csv(summary(k.out)[["ttests"]],"ttestic3_dtiglobal.csv",row.names=FALSE)
+
+save.bigKRLS(k.out, "k.out100ic3_dtiglobal.csv",overwrite.existing=TRUE)
+
+write.csv(pmat,"pmatic3_dtiglobal.csv",row.names=FALSE)
+write.csv(tmat,"tmatic3_dtiglobal.csv",row.names=FALSE)
