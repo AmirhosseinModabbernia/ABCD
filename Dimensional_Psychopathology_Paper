@@ -1,4 +1,6 @@
 
+#This is an example of KRLS to study the association between the DTI and Independent components of psychopathology
+
 #DTI for ICA-derived
 
 library(bigKRLS)
