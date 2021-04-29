@@ -76,6 +76,34 @@ abcd_cbcls01<-abcd_cbcls01[lapply(abcd_cbcls01,function(x)sum(is.na(x))/length(x
 abcd_cbcls01<-abcd_cbcls01[,c(1,2,seq(4,61,3))]
 
 
+######--------------------------------------subsyndromal mania-------------------------######
+abcd_pgbi01 <- read.delim("abcd_pgbi01.txt")
+abcd_pgbi01<-abcd_pgbi01[-1,]
+names(abcd_pgbi01)
+abcd_pgbi01<-abcd_pgbi01[,c(4,9,11:20)]
+abcd_pgbi01[,-c(1:2)]<-sapply(abcd_pgbi01[,-c(1:2)], as.character)
+abcd_pgbi01[,-c(1:2)]<-sapply(abcd_pgbi01[,-c(1:2)], as.numeric)
+summary(abcd_pgbi01)
+abcd_pgbi01$abcd_pgbi01<-rowSums(abcd_pgbi01[,3:12])
+
+
+
+######--------------------------------------prodromal -------------------------######
+pps01 <- read.delim("pps01.txt")
+pps01<-pps01[-1,]
+names(pps01)
+pps01<-pps01[,-c(1:3,5:8,73)]
+pps01[,-c(1:2)]<-sapply(pps01[,-c(1:2)], as.character)
+pps01[,-c(1:2)]<-sapply(pps01[,-c(1:2)], as.numeric)
+pps01<-pps01[lapply(pps01,function(x)sum(is.na(x))/length(x))<0.50]
+summary(pps01)
+pps01$pps01_total<-rowSums(pps01[,3:23])
+pps01<-pps01[,c(1,2,24)]
+names(pps01)[2]<-"eventname"
+
+
+                                  
+                                  
 ######-----------------------------Parental Demographics----------------------------------######
 
 pdem02 <-read.delim("pdem02.txt")
@@ -161,6 +189,67 @@ abcd_peq01$abcd_peq01_victim = rowSums(abcd_peq01[,grepl("*vic",names(abcd_peq01
 summary(abcd_peq01)
 abcd_peq01<-abcd_peq01[,c(1,2,21:22)]
 
+
+
+#########---------------------Bullying------------------------------------######
+bully <- read.delim("dibf01.txt")
+bully<-bully[-1,]
+names(bully)
+bully<-bully[,c(4,89,65)]
+bully[,-c(1:2)]<-sapply(bully[,-c(1:2)], as.character)
+bully[,-c(1:2)]<-sapply(bully[,-c(1:2)], as.numeric)
+summary(bully)
+bully<-bully[bully$eventname=="baseline_year_1_arm_1",]
+bully<-bully[,c(1,3)]
+
+######-----------------------------Traumatic Events----------------------------------######
+
+abcd_ptsd01 <-read.delim("abcd_ptsd01.txt")
+abcd_ptsd01<-abcd_ptsd01[-1,]
+names(abcd_ptsd01)
+abcd_ptsd01<-abcd_ptsd01[,c(4,9,10:26)]
+abcd_ptsd01[,-c(1:2)]<-sapply(abcd_ptsd01[,-c(1:2)], as.character)
+abcd_ptsd01[,-c(1:2)]<-sapply(abcd_ptsd01[,-c(1:2)], as.numeric)
+summary(abcd_ptsd01)
+abcd_ptsd01$trauma<-rowSums(abcd_ptsd01[,c(3:19)])
+abcd_ptsd01<-abcd_ptsd01[,c(1,2,20)]
+abcd_ptsd01$trauma<-ifelse(abcd_ptsd01$trauma>0,1,abcd_ptsd01$trauma)
+                             
+######-----------------------------Medical----------------------------------######
+
+abcd_mx01 <- read.delim("abcd_mx01.txt")
+abcd_mx01<-abcd_mx01[-1,]
+names(abcd_mx01)
+abcd_mx01<-abcd_mx01[,c(4,9,13:29)]
+abcd_mx01[,-c(1:2)]<-sapply(abcd_mx01[,-c(1:2)], as.character)
+abcd_mx01[,-c(1:2)]<-sapply(abcd_mx01[,-c(1:2)], as.numeric)
+abcd_mx01[,-c(1:2)]<-sapply(abcd_mx01[,-c(1:2)], function(x) ifelse(x>3,NA,x))
+abcd_mx01$common_medical<-abcd_mx01$medhx_2a+abcd_mx01$medhx_2b+abcd_mx01$medhx_2d
+abcd_mx01$neurological<-abcd_mx01$medhx_2c+abcd_mx01$medhx_2f+abcd_mx01$medhx_2h+abcd_mx01$medhx_2l+abcd_mx01$medhx_2m
+abcd_mx01$serious_medical<-abcd_mx01$medhx_2e+abcd_mx01$medhx_2g+abcd_mx01$medhx_2j+abcd_mx01$medhx_2k+abcd_mx01$medhx_2o+abcd_mx01$medhx_2p
+abcd_mx01<-abcd_mx01[,c(1,20:22)]
+abcd_mx01[,-1]<-sapply(abcd_mx01[,-1], function(x) ifelse(x>=1,1,0))
+summary(abcd_mx01)                                  
+                                  
+ ######--------------------------------------Screen Media-------------------------######
+#release 2.0.1 as the third release has missing values
+stq01 <-read.delim("/Volumes/Toshiba/ABCD_release_2point0point1/stq01.txt") 
+stq01<-stq01[-1,]
+names(stq01)
+stq01<-stq01[,c(4,13,9:12)]
+stq01[,-c(1:2)]<-sapply(stq01[,-c(1:2)], as.character)
+stq01[,-c(1:2)]<-sapply(stq01[,-c(1:2)], as.numeric)
+stq01$weekdayscreen<-stq01$screentime1_p_hours+(stq01$screentime1_p_minutes/60)
+stq01$weekendscreen<-stq01$screentime2_p_hours+(stq01$screentime2_p_minutes/60)
+stq01<-stq01[stq01$eventname=="baseline_year_1_arm_1",]
+stq01<-stq01[,-c(2:6)]
+summary(stq01)
+stq01$weekdayscreen<-gtools::quantcut(stq01$weekdayscreen)
+stq01$weekdayscreen<-as.numeric(stq01$weekdayscreen)
+stq01$weekendscreen<-gtools::quantcut(stq01$weekendscreen)
+stq01$weekendscreen<-as.numeric(stq01$weekendscreen)
+
+                                  
 #####-------------------------------------Cognitive PCs------------------------------#####
 neurocogpcs<-read.csv("neurocogpcs.csv")
 neurocogpcs<-neurocogpcs[,-1]
@@ -179,6 +268,39 @@ abcd_rhds01[,-c(1:2)]<-sapply(abcd_rhds01[,-c(1:2)], as.numeric)
 summary(abcd_rhds01)
 
 
+######-----------------------------------RESIDENTIAL-----------------------------######
+abcd_rhds01 <- read.delim("abcd_rhds01.txt")
+abcd_rhds01<-abcd_rhds01[-1,]
+abcd_rhds01<-abcd_rhds01[,c(4,9,16,42,45,250,258:262)]
+names(abcd_rhds01)
+abcd_rhds01[,-c(1:2)]<-sapply(abcd_rhds01[,-c(1:2)], as.character)
+abcd_rhds01[,-c(1:2)]<-sapply(abcd_rhds01[,-c(1:2)], as.numeric)
+summary(abcd_rhds01)
+abcd_rhds01<-abcd_rhds01[abcd_rhds01$eventname=="baseline_year_1_arm_1",]
+abcd_rhds01<-abcd_rhds01[,c(1,4,5,6)]
+
+######-----------------------------------Neighborhood Safety youth-----------------------------######
+abcd_nsc01<-read.delim("abcd_nsc01.txt")
+abcd_nsc01<-abcd_nsc01[-1,]
+abcd_nsc01<-abcd_nsc01[,c(4,9,10)]
+names(abcd_nsc01)
+abcd_nsc01[,-c(1:2)]<-sapply(abcd_nsc01[,-c(1:2)], as.character)
+abcd_nsc01[,-c(1:2)]<-sapply(abcd_nsc01[,-c(1:2)], as.numeric)
+summary(abcd_nsc01)
+
+######-----------------------------------Neighborhood Safety parents-----------------------------######
+abcd_pnsc01<-read.delim("abcd_pnsc01.txt")
+abcd_pnsc01<-abcd_pnsc01[-1,]
+abcd_pnsc01<-abcd_pnsc01[,c(4,9,11:13)]
+names(abcd_pnsc01)
+abcd_pnsc01[,-c(1:2)]<-sapply(abcd_pnsc01[,-c(1:2)], as.character)
+abcd_pnsc01[,-c(1:2)]<-sapply(abcd_pnsc01[,-c(1:2)], as.numeric)
+abcd_pnsc01$abcd_pnsc01<-rowSums(abcd_pnsc01[,3:5])
+abcd_pnsc01<-abcd_pnsc01[,-c(3:5)]
+summary(abcd_pnsc01)
+
+                                  
+                                  
 ######-----------------------------Pregnancy----------------------------------######
 #data for birthweigh is not available on release 3 so using release 2.0.1
 dhx01 <- read.delim("/Volumes/Toshiba/ABCD_release_2point0point1/dhx01.txt")
@@ -271,6 +393,39 @@ abcd_ssphp01[is.na(abcd_ssphp01$puberty_p) & abcd_ssphp01$sex=="F",]$puberty_p<-
 abcd_ssphp01<-abcd_ssphp01[,c(1,3:10,13,16)]
 
 
+#########---------------------Parent Reported-Family Conflict Subscale (ongoing)------------------------------------######
+fes02 <- read.delim("fes02.txt")
+fes02<-fes02[-1,]
+names(fes02)
+fes02<-fes02[,c(4,9,10:18)]
+fes02[,-c(1:2)]<-sapply(fes02[,-c(1:2)], as.character)
+fes02[,-c(1:2)]<-sapply(fes02[,-c(1:2)], as.numeric)
+summary(fes02)
+fes02<-fes02[fes02$eventname=="baseline_year_1_arm_1",]
+fes02<-fes02[,-2]
+fes02$family_conflict_parents<-rowSums(fes02[,2:10])
+fes02<-fes02[,c(1,11)]
+fes02<-fes02[!duplicated(fes02[c('subjectkey')]),]
+
+#########---------------------Youth Reported-Family Conflict Subscale (ongoing)------------------------------------######
+abcd_fes01 <- read.delim("abcd_fes01.txt")
+abcd_fes01<-abcd_fes01[-1,]
+names(abcd_fes01)
+abcd_fes01<-abcd_fes01[,c(4,18,9:17)]
+abcd_fes01[,-c(1:2)]<-sapply(abcd_fes01[,-c(1:2)], as.character)
+abcd_fes01[,-c(1:2)]<-sapply(abcd_fes01[,-c(1:2)], as.numeric)
+summary(abcd_fes01)
+abcd_fes01$family_conflict_youth<-rowSums(abcd_fes01[,3:11])
+abcd_fes01<-abcd_fes01[,c(1,2,12)]
+abcd_fes01<-abcd_fes01[abcd_fes01$eventname=="baseline_year_1_arm_1",]
+
+######--------------------------------------physical activity-------------------------######
+abcd_yrb01 <-read.delim("abcd_yrb01.txt")
+abcd_yrb01<-abcd_yrb01[-1,]
+names(abcd_yrb01)
+abcd_yrb01<-abcd_yrb01[,c(4,9,10)]
+abcd_yrb01[,-c(1:2)]<-sapply(abcd_yrb01[,-c(1:2)], as.character)
+abcd_yrb01[,-c(1:2)]<-sapply(abcd_yrb01[,-c(1:2)], as.numeric)
 
 ######-----------------------------------------------ksads-------------------------------------------#####
 ####based on the matlab script for extracting KSADS diagnosis
@@ -445,27 +600,5 @@ abcd_gdss01<-abcd_gdss01[,c(4,9,17:26)]
 abcd_gdss01[,-c(1:2)]<-sapply(abcd_gdss01[,-c(1:2)], as.character)
 abcd_gdss01[,-c(1:2)]<-sapply(abcd_gdss01[,-c(1:2)], as.numeric)
 summary(abcd_gdss01)
-
-
-#########---------------------Parent Reported-Family Conflict Subscale (ongoing)------------------------------------######
-fes02 <- read.delim("fes02.txt")
-fes02<-fes02[-1,]
-names(fes02)
-fes02<-fes02[,c(4,9,10:18)]
-fes02[,-c(1:2)]<-sapply(fes02[,-c(1:2)], as.character)
-fes02[,-c(1:2)]<-sapply(fes02[,-c(1:2)], as.numeric)
-summary(fes02)
-fes02$family_conflict_parents<-rowSums(fes02[,3:11])
-fes02<-fes02[,c(1,12)]
-
-
-
-
-
-
-
-
-
-
 
 
