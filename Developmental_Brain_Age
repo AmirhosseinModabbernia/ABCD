@@ -1292,3 +1292,322 @@ svmRadial_female <- train(x = input_x_female,
 
 save.image("svmRadial_yeo.RData")
 
+
+
+#xgbTree
+
+rm(list=ls()) 
+
+#Load packages
+library(doParallel)
+library(caret)
+library(xgboost)
+
+#initialize parallel computation
+numCores <- detectCores()
+cl <- makePSOCKcluster(numCores-5)
+registerDoParallel(cl)
+
+
+#load data
+
+
+x<-read.csv("data_ml_dev_brainage.csv")
+x<-x[,-1]
+input_x_male=as.matrix(x[x$SEX==1,2:801])
+input_y_male<-as.double(as.matrix(x[x$SEX==1,]$AGE_AT_SCAN))
+
+input_x_female=as.matrix(x[x$SEX==2,2:801])
+input_y_female<-as.double(as.matrix(x[x$SEX==2,]$AGE_AT_SCAN))
+
+
+#train control parameters
+nrounds=1000
+
+
+set.seed(123)
+
+tune_control <- caret::trainControl(
+  method="repeatedcv", 
+  number=5, 
+  repeats=5,
+   # with n folds 
+  #index = createFolds(x$AGE_AT_SCAN), # fix the folds
+  verboseIter = TRUE, # no training log
+  allowParallel = TRUE, # FALSE for reproducible results 
+  savePredictions="final"
+)
+
+
+
+tune_grid <- expand.grid(
+  nrounds = seq(from = 200, to = nrounds, by = 50),
+  eta = c(0.025, 0.05, 0.1, 0.3),
+  max_depth = c(2, 3, 4, 5, 6),
+  gamma = 0,
+  colsample_bytree = 1,
+  min_child_weight = 1,
+  subsample = 1
+)
+
+
+
+xgb_tune <- caret::train(
+  x = input_x_male,
+  y = input_y_male,
+  trControl = tune_control,
+  tuneGrid = tune_grid,
+  method = "xgbTree",
+  verbose = TRUE
+)
+
+
+
+
+
+tune_grid2 <- expand.grid(
+  nrounds = seq(from = 50, to = nrounds, by = 50),
+  eta = xgb_tune$bestTune$eta,
+  max_depth = ifelse(xgb_tune$bestTune$max_depth == 2,
+    c(xgb_tune$bestTune$max_depth:4),
+    xgb_tune$bestTune$max_depth - 1:xgb_tune$bestTune$max_depth + 1),
+  gamma = 0,
+  colsample_bytree = 1,
+  min_child_weight = c(1, 2, 3),
+  subsample = 1
+)
+
+xgb_tune2 <- caret::train(
+  x = input_x_male,
+  y = input_y_male,
+  trControl = tune_control,
+  tuneGrid = tune_grid2,
+  method = "xgbTree",
+  verbose = TRUE
+)
+
+
+
+tune_grid3 <- expand.grid(
+  nrounds = seq(from = 50, to = nrounds, by = 50),
+  eta = xgb_tune$bestTune$eta,
+  max_depth = xgb_tune2$bestTune$max_depth,
+  gamma = 0,
+  colsample_bytree = c(0.2,0.4, 0.6, 0.8, 1.0),
+  min_child_weight = xgb_tune2$bestTune$min_child_weight,
+  subsample = seq(0.5,1,length.out=5)
+)
+
+xgb_tune3 <- caret::train(
+  x = input_x_male,
+  y = input_y_male,
+  trControl = tune_control,
+  tuneGrid = tune_grid3,
+  method = "xgbTree",
+  verbose = TRUE
+)
+
+
+tune_grid4 <- expand.grid(
+  nrounds = seq(from = 50, to = nrounds, by = 50),
+  eta = xgb_tune$bestTune$eta,
+  max_depth = xgb_tune2$bestTune$max_depth,
+  gamma = c(0,  0.1, 0.2, 0.4, 0.8),
+  colsample_bytree = xgb_tune3$bestTune$colsample_bytree,
+  min_child_weight = xgb_tune2$bestTune$min_child_weight,
+  subsample = xgb_tune3$bestTune$subsample
+)
+
+xgb_tune4 <- caret::train(
+  x = input_x_male,
+  y = input_y_male,
+  trControl = tune_control,
+  tuneGrid = tune_grid4,
+  method = "xgbTree",
+  verbose = TRUE
+)
+
+
+
+tune_grid5 <- expand.grid(
+  nrounds = seq(from = 100, to = 10000, by = 100),
+  eta = c(0.01, 0.025, 0.05, 0.075, 0.1),
+  max_depth = xgb_tune2$bestTune$max_depth,
+  gamma = xgb_tune4$bestTune$gamma,
+  colsample_bytree = xgb_tune3$bestTune$colsample_bytree,
+  min_child_weight = xgb_tune2$bestTune$min_child_weight,
+  subsample = xgb_tune3$bestTune$subsample
+)
+
+xgb_tune5 <- caret::train(
+  x = input_x_male,
+  y = input_y_male,
+  trControl = tune_control,
+  tuneGrid = tune_grid5,
+  method = "xgbTree",
+  verbose = TRUE
+)
+
+
+
+
+(final_grid <- expand.grid(
+  nrounds = xgb_tune5$bestTune$nrounds,
+  eta = xgb_tune5$bestTune$eta,
+  max_depth = xgb_tune5$bestTune$max_depth,
+  gamma = xgb_tune5$bestTune$gamma,
+  colsample_bytree = xgb_tune5$bestTune$colsample_bytree,
+  min_child_weight = xgb_tune5$bestTune$min_child_weight,
+  subsample = xgb_tune5$bestTune$subsample
+))
+
+
+
+xgb_male <- caret::train(
+  x = input_x_male,
+  y = input_y_male,
+  trControl = tune_control,
+  tuneGrid = final_grid,
+  method = "xgbTree",
+  verbose = TRUE
+)
+
+
+
+
+tune_grid <- expand.grid(
+  nrounds = seq(from = 200, to = nrounds, by = 50),
+  eta = c(0.025, 0.05, 0.1, 0.3),
+  max_depth = c(2, 3, 4, 5, 6),
+  gamma = 0,
+  colsample_bytree = 1,
+  min_child_weight = 1,
+  subsample = 1
+)
+
+
+
+xgb_tune <- caret::train(
+  x = input_x_female,
+  y = input_y_female,
+  trControl = tune_control,
+  tuneGrid = tune_grid,
+  method = "xgbTree",
+  verbose = TRUE
+)
+
+
+
+
+
+tune_grid2 <- expand.grid(
+  nrounds = seq(from = 50, to = nrounds, by = 50),
+  eta = xgb_tune$bestTune$eta,
+  max_depth = ifelse(xgb_tune$bestTune$max_depth == 2,
+    c(xgb_tune$bestTune$max_depth:4),
+    xgb_tune$bestTune$max_depth - 1:xgb_tune$bestTune$max_depth + 1),
+  gamma = 0,
+  colsample_bytree = 1,
+  min_child_weight = c(1, 2, 3),
+  subsample = 1
+)
+
+xgb_tune2 <- caret::train(
+  x = input_x_female,
+  y = input_y_female,
+  trControl = tune_control,
+  tuneGrid = tune_grid2,
+  method = "xgbTree",
+  verbose = TRUE
+)
+
+
+
+tune_grid3 <- expand.grid(
+  nrounds = seq(from = 50, to = nrounds, by = 50),
+  eta = xgb_tune$bestTune$eta,
+  max_depth = xgb_tune2$bestTune$max_depth,
+  gamma = 0,
+  colsample_bytree = c(0.2,0.4, 0.6, 0.8, 1.0),
+  min_child_weight = xgb_tune2$bestTune$min_child_weight,
+  subsample = seq(0.5,1,length.out=5)
+)
+
+xgb_tune3 <- caret::train(
+  x = input_x_female,
+  y = input_y_female,
+  trControl = tune_control,
+  tuneGrid = tune_grid3,
+  method = "xgbTree",
+  verbose = TRUE
+)
+
+
+tune_grid4 <- expand.grid(
+  nrounds = seq(from = 50, to = nrounds, by = 50),
+  eta = xgb_tune$bestTune$eta,
+  max_depth = xgb_tune2$bestTune$max_depth,
+  gamma = c(0,  0.1, 0.2, 0.4, 0.8),
+  colsample_bytree = xgb_tune3$bestTune$colsample_bytree,
+  min_child_weight = xgb_tune2$bestTune$min_child_weight,
+  subsample = xgb_tune3$bestTune$subsample
+)
+
+xgb_tune4 <- caret::train(
+  x = input_x_female,
+  y = input_y_female,
+  trControl = tune_control,
+  tuneGrid = tune_grid4,
+  method = "xgbTree",
+  verbose = TRUE
+)
+
+
+
+tune_grid5 <- expand.grid(
+  nrounds = seq(from = 100, to = 10000, by = 100),
+  eta = c(0.01, 0.025, 0.05, 0.075, 0.1),
+  max_depth = xgb_tune2$bestTune$max_depth,
+  gamma = xgb_tune4$bestTune$gamma,
+  colsample_bytree = xgb_tune3$bestTune$colsample_bytree,
+  min_child_weight = xgb_tune2$bestTune$min_child_weight,
+  subsample = xgb_tune3$bestTune$subsample
+)
+
+xgb_tune5 <- caret::train(
+  x = input_x_female,
+  y = input_y_female,
+  trControl = tune_control,
+  tuneGrid = tune_grid5,
+  method = "xgbTree",
+  verbose = TRUE
+)
+
+
+
+
+(final_grid <- expand.grid(
+  nrounds = xgb_tune5$bestTune$nrounds,
+  eta = xgb_tune5$bestTune$eta,
+  max_depth = xgb_tune5$bestTune$max_depth,
+  gamma = xgb_tune5$bestTune$gamma,
+  colsample_bytree = xgb_tune5$bestTune$colsample_bytree,
+  min_child_weight = xgb_tune5$bestTune$min_child_weight,
+  subsample = xgb_tune5$bestTune$subsample
+))
+
+
+
+xgb_female <- caret::train(
+  x = input_x_female,
+  y = input_y_female,
+  trControl = tune_control,
+  tuneGrid = final_grid,
+  method = "xgbTree",
+  verbose = TRUE
+)
+
+
+ save.image("xgb_yeo.RData")
+
+
