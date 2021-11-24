@@ -61,69 +61,6 @@ save.image("bayesglm_yeo.RData")
 
 
 
-###blasso
-
-rm(list=ls()) 
-
-#Load packages
-library(caret)
-library(doParallel)
-library(kernlab)
-
-#initialize parallel computation
-numCores <- detectCores()
-cl <- makePSOCKcluster(numCores-5)
-registerDoParallel(cl)
-
-
-#load data
-
-
-x<-read.csv("data_ml_dev_brainage.csv")
-x<-x[,-1]
-input_x_male=as.matrix(x[x$SEX==1,2:801])
-input_y_male<-as.double(as.matrix(x[x$SEX==1,]$AGE_AT_SCAN))
-
-input_x_female=as.matrix(x[x$SEX==2,2:801])
-input_y_female<-as.double(as.matrix(x[x$SEX==2,]$AGE_AT_SCAN))
-
-
-#train control parameters
-
-
-
-set.seed(123)
-
-tune_control <- caret::trainControl(
-  method="repeatedcv", 
-  number=5, 
-  repeats=5,
-   # with n folds 
-  #index = createFolds(x$AGE_AT_SCAN), # fix the folds
-  verboseIter = TRUE, # no training log
-  allowParallel = TRUE, # FALSE for reproducible results 
-  savePredictions="final"
-)
-
-#train models
-
-
-blasso_male <- train(x = input_x_male,
-  y = input_y_male,method = "blasso", trControl = tune_control, preProcess = c("center","scale"),
-    tuneGrid = expand.grid(sparsity =seq(0,1,0.2)))
-
-
-blasso_female <- train(x = input_x_female,
-  y = input_y_female,method = "blasso", trControl = tune_control, preProcess = c("center","scale"),
-    tuneGrid = expand.grid(sparsity =seq(0,1,0.2)))
-
-
-save.image("blasso_yeo.RData")
-
-
-
-
-
 ###brnn
 
 rm(list=ls()) 
@@ -168,15 +105,13 @@ tune_control <- caret::trainControl(
 )
 
 #train models
-#start the clock
-ptm <- proc.time()
+
 
 brnn_male <- train(x = input_x_male,
   y = input_y_male,method = "brnn", trControl = tune_control, preProcess = c("center","scale"),
     tuneGrid = expand.grid(neurons =seq(1,5,1)))
 
 
-write.csv((proc.time() - ptm)[2],"time_for_brnn_yeo.csv")
 
 
 brnn_female <- train(x = input_x_female,
@@ -233,13 +168,11 @@ tune_control <- caret::trainControl(
 )
 
 #train models
-#start the clock
-ptm <- proc.time()
+
 
 enet_male <- train(x = input_x_male,
   y = input_y_male,method = "enet", trControl = tune_control, preProcess = c("center","scale"),
   tuneGrid = expand.grid(fraction = seq(0,1,0.2),lambda=c(0.1,0.01,0.001,0.0001,0.00001)))
-write.csv((proc.time() - ptm)[2],"time_for_enet_yeo.csv")
 
 enet_female <- train(x = input_x_female,
   y = input_y_female,method = "enet", trControl = tune_control, preProcess = c("center","scale"),
@@ -297,7 +230,7 @@ tune_control <- caret::trainControl(
 )
 
 #train models
-#start the clock
+
 
 gamboost_male <- train(x = input_x_male,
   y = input_y_male,method = "gamboost", trControl = tune_control, preProcess = c("center","scale"),
@@ -319,70 +252,6 @@ save.image("gamboost_yeo.RData")
 
 
 
-
-###gamSpline
-
-rm(list=ls()) 
-
-#Load packages
-library(caret)
-library(doParallel)
-library(kernlab)
-
-#initialize parallel computation
-numCores <- detectCores()
-cl <- makePSOCKcluster(numCores-5)
-registerDoParallel(cl)
-
-
-#load data
-
-
-x<-read.csv("data_ml_dev_brainage.csv")
-x<-x[,-1]
-input_x_male=as.matrix(x[x$SEX==1,2:801])
-input_y_male<-as.double(as.matrix(x[x$SEX==1,]$AGE_AT_SCAN))
-
-input_x_female=as.matrix(x[x$SEX==2,2:801])
-input_y_female<-as.double(as.matrix(x[x$SEX==2,]$AGE_AT_SCAN))
-
-
-#train control parameters
-
-
-
-set.seed(123)
-
-tune_control <- caret::trainControl(
-  method="repeatedcv", 
-  number=5, 
-  repeats=5,
-   # with n folds 
-  #index = createFolds(x$AGE_AT_SCAN), # fix the folds
-  verboseIter = TRUE, # no training log
-  allowParallel = TRUE, # FALSE for reproducible results 
-  savePredictions="final"
-)
-
-#train models
-#start the clock
-ptm <- proc.time()
-
-gamSpline_male <- train(x = input_x_male,
-  y = input_y_male,method = "gamSpline", trControl = tune_control, preProcess = c("center","scale"),
-    tuneGrid = expand.grid(df=1:5))
-
-
-
-write.csv((proc.time() - ptm)[2],"time_for_gamSpline_yeo.csv")
-
-
-gamSpline_female <- train(x = input_x_female,
-  y = input_y_female,method = "gamSpline", trControl = tune_control, preProcess = c("center","scale"),
-    tuneGrid = expand.grid(df=1:5))
-
-
-save.image("gamSpline_yeo.RData")
 
 
 
@@ -431,15 +300,8 @@ tune_control <- caret::trainControl(
 )
 
 #train models
-#start the clock
-ptm <- proc.time()
-
 gaussprLinear_male <- train(x = input_x_male,
   y = input_y_male,method = "gaussprLinear", trControl = tune_control, preProcess = c("center","scale"))
-
-
-
-write.csv((proc.time() - ptm)[2],"time_for_gaussprLinear_yeo.csv")
 
 
 gaussprLinear_female <- train(x = input_x_female,
@@ -497,17 +359,10 @@ tune_control <- caret::trainControl(
 )
 
 #train models
-#start the clock
-ptm <- proc.time()
 
 gaussprPoly_male <- train(x = input_x_male,
   y = input_y_male,method = "gaussprPoly", trControl = tune_control, preProcess = c("center","scale"),
     tuneGrid = expand.grid(degree =1:3,scale =c(10,1,0.1,0.01,0.001)))
-
-
-
-write.csv((proc.time() - ptm)[2],"time_for_gaussprPoly_yeo.csv")
-
 
 gaussprPoly_female <- train(x = input_x_female,
   y = input_y_female,method = "gaussprPoly", trControl = tune_control, preProcess = c("center","scale"),
@@ -568,16 +423,11 @@ tune_control <- caret::trainControl(
 )
 
 #train models
-#start the clock
-ptm <- proc.time()
 
 gaussprRadial_male <- train(x = input_x_male,
   y = input_y_male,method = "gaussprRadial", trControl = tune_control, preProcess = c("center","scale"),
     tuneGrid = expand.grid(sigma=seq(sigest(as.matrix(input_x_male),scaled = TRUE)[1],sigest(as.matrix(input_x_male),scaled = TRUE)[3],length.out=5)))
 
-
-
-write.csv((proc.time() - ptm)[2],"time_for_gaussprRadial_yeo.csv")
 
 
 gaussprRadial_female <- train(x = input_x_female,
@@ -632,12 +482,9 @@ tune_control <- caret::trainControl(
 )
 
 #train models
-#start the clock
-ptm <- proc.time()
 
 glm_male <- train(x = input_x_male,
   y = input_y_male,method = "glm", trControl = tune_control, preProcess = c("center","scale"))
-write.csv((proc.time() - ptm)[2],"time_for_glm_yeo.csv")
 
 glm_female <- train(x = input_x_female,
   y = input_y_female,method = "glm", trControl = tune_control, preProcess = c("center","scale"))
@@ -694,16 +541,11 @@ tune_control <- caret::trainControl(
 )
 
 #train models
-#start the clock
-ptm <- proc.time()
 
 icr_male <- train(x = input_x_male,
   y = input_y_male,method = "icr", trControl = tune_control, preProcess = c("center","scale"),
     tuneGrid = expand.grid(n.comp=1:5))
 
-
-
-write.csv((proc.time() - ptm)[2],"time_for_icr_yeo.csv")
 
 
 icr_female <- train(x = input_x_female,
@@ -759,13 +601,9 @@ tune_control <- caret::trainControl(
 )
 
 #train models
-#start the clock
-ptm <- proc.time()
-
 kernelpls_male <- train(x = input_x_male,
   y = input_y_male,method = "kernelpls", trControl = tune_control, preProcess = c("center","scale"), 
   tuneGrid = expand.grid(ncomp =seq(1,5,1)))
-write.csv((proc.time() - ptm)[2],"time_for_kernelpls_yeo.csv")
 
 kernelpls_female <- train(x = input_x_female,
   y = input_y_female,method = "kernelpls", trControl = tune_control, preProcess = c("center","scale"), 
@@ -821,14 +659,12 @@ tune_control <- caret::trainControl(
 )
 
 #train models
-#start the clock
-ptm <- proc.time()
+
 
 pcr_male <- train(x = input_x_male,
   y = input_y_male,method = "pcr", trControl = tune_control, preProcess = c("center","scale"), 
   tuneGrid = expand.grid(ncomp =seq(1,5,1)))
 
-write.csv((proc.time() - ptm)[2],"time_for_pcr_yeo.csv")
 
 
 pcr_female <- train(x = input_x_female,
@@ -948,16 +784,11 @@ tune_control <- caret::trainControl(
 )
 
 #train models
-#start the clock
-ptm <- proc.time()
 
 rf_male <- train(x = input_x_male,importance=T,
   y = input_y_male,method = "rf", trControl = tune_control, preProcess = c("center","scale"),
     tuneGrid = expand.grid(mtry=c(2,8,40,178,800)))
 
-
-
-write.csv((proc.time() - ptm)[2],"time_for_rf_yeo.csv")
 
 
 rf_female <- train(x = input_x_female,importance=T,
@@ -1014,16 +845,11 @@ tune_control <- caret::trainControl(
 )
 
 #train models
-#start the clock
-ptm <- proc.time()
 
 rqlasso_male <- train(x = input_x_male,
   y = input_y_male,method = "rqlasso", trControl = tune_control, preProcess = c("center","scale"),
     tuneGrid = expand.grid(lambda=c(0.1,0.0177828,0.0031623,0.0005623,0.0001000)))
 
-
-
-write.csv((proc.time() - ptm)[2],"time_for_rqlasso_yeo.csv")
 
 
 rqlasso_female <- train(x = input_x_female,
@@ -1034,71 +860,6 @@ save.image("rqlasso_yeo.RData")
 
 
 
-
-
-
-###rrf
-
-rm(list=ls()) 
-
-#Load packages
-library(caret)
-library(doParallel)
-library(kernlab)
-
-#initialize parallel computation
-numCores <- detectCores()
-cl <- makePSOCKcluster(numCores-5)
-registerDoParallel(cl)
-
-
-#load data
-
-
-x<-read.csv("data_ml_dev_brainage.csv")
-x<-x[,-1]
-input_x_male=as.matrix(x[x$SEX==1,2:801])
-input_y_male<-as.double(as.matrix(x[x$SEX==1,]$AGE_AT_SCAN))
-
-input_x_female=as.matrix(x[x$SEX==2,2:801])
-input_y_female<-as.double(as.matrix(x[x$SEX==2,]$AGE_AT_SCAN))
-
-
-#train control parameters
-
-
-
-set.seed(123)
-
-tune_control <- caret::trainControl(
-  method="repeatedcv", 
-  number=5, 
-  repeats=5,
-   # with n folds 
-  #index = createFolds(x$AGE_AT_SCAN), # fix the folds
-  verboseIter = TRUE, # no training log
-  allowParallel = TRUE, # FALSE for reproducible results 
-  savePredictions="final"
-)
-
-#train models
-#start the clock
-ptm <- proc.time()
-
-RRF_male <- train(x = input_x_male,
-  y = input_y_male,method = "RRF", trControl = tune_control, preProcess = c("center","scale"),
-    tuneGrid = expand.grid(mtry=c(2,8,40,178,800),coefReg=c(.01,0.2575,.5050,0.7525,1),coefImp=c(0,0.25,0.5,0.75,1)))
-
-
-
-write.csv((proc.time() - ptm)[2],"time_for_RRF_yeo.csv")
-
-
-RRF_female <- train(x = input_x_female,
-  y = input_y_female,method = "RRF", trControl = tune_control, preProcess = c("center","scale"),
-    tuneGrid = expand.grid(mtry=c(2,8,40,178,800),coefReg=c(.01,0.2575,.5050,0.7525,1),coefImp=c(0,0.25,0.5,0.75,1)))
-
-save.image("RRF_yeo.RData")
 
 
 
@@ -1149,15 +910,9 @@ tune_control <- caret::trainControl(
 )
 
 #train models
-#start the clock
-ptm <- proc.time()
 
 rvmLinear_male <- train(x = input_x_male,
   y = input_y_male,method = "rvmLinear", trControl = tune_control, preProcess = c("center","scale"))
-
-
-
-write.csv((proc.time() - ptm)[2],"time_for_rvmLinear_yeo.csv")
 
 
 rvmLinear_female <- train(x = input_x_female,
@@ -1213,16 +968,11 @@ tune_control <- caret::trainControl(
 )
 
 #train models
-#start the clock
-ptm <- proc.time()
+
 
 rvmPoly_male <- train(x = input_x_male,
   y = input_y_male,method = "rvmPoly", trControl = tune_control, preProcess = c("center","scale"),
  tuneGrid = expand.grid(degree =1:3,scale =c(10,1,0.1,0.01,0.001)))
-
-
-
-write.csv((proc.time() - ptm)[2],"time_for_rvmPoly_yeo.csv")
 
 
 rvmPoly_female <- train(x = input_x_female,
@@ -1281,16 +1031,12 @@ tune_control <- caret::trainControl(
 )
 
 #train models
-#start the clock
-ptm <- proc.time()
+
 
 rvmRadial_male <- train(x = input_x_male,
   y = input_y_male,method = "rvmRadial", trControl = tune_control, preProcess = c("center","scale"),
     tuneGrid = expand.grid(sigma=seq(sigest(as.matrix(input_x_female),scaled = TRUE)[1],sigest(as.matrix(input_x_female),scaled = TRUE)[3],length.out=5)))
 
-
-
-write.csv((proc.time() - ptm)[2],"time_for_rvmRadial_yeo.csv")
 
 
 rvmRadial_female <- train(x = input_x_female,
@@ -1343,13 +1089,11 @@ tune_control <- caret::trainControl(
 )
 
 #train models
-#start the clock
-ptm <- proc.time()
+
 
 spls_male <- train(x = input_x_male,
   y = input_y_male,method = "spls", trControl = tune_control, preProcess = c("center","scale"), 
   tuneGrid = expand.grid(eta=seq(0,1,0.2),K=seq(1,5,1),kappa=0.5))
-write.csv((proc.time() - ptm)[2],"time_for_spls_yeo.csv")
 
 spls_female <- train(x = input_x_female,
   y = input_y_female,method = "spls", trControl = tune_control, preProcess = c("center","scale"), 
@@ -1403,16 +1147,13 @@ tune_control <- caret::trainControl(
 )
 
 #train models
-#start the clock
-ptm <- proc.time()
+
 
 svmLinear3_male <- train(x = input_x_male,
   y = input_y_male,method = "svmLinear3", trControl = tune_control, preProcess = c("center","scale"),
     tuneGrid = expand.grid(cost=c(0.25,.5,1,2,4,8,16,32,64,128),Loss=c("L1","L2")))
 
 
-
-write.csv((proc.time() - ptm)[2],"time_for_svmLinear3_yeo.csv")
 
 
 svmLinear3_female <- train(x = input_x_female,
@@ -1473,16 +1214,11 @@ tune_control <- caret::trainControl(
 )
 
 #train models
-#start the clock
-ptm <- proc.time()
+
 
 svmPoly_male <- train(x = input_x_male,
   y = input_y_male,method = "svmPoly", trControl = tune_control, preProcess = c("center","scale"),
     tuneGrid = expand.grid(degree =1:3,scale =c(10,1,0.1,0.01,0.001),C=c(0.25,.5,1,2,4)))
-
-
-
-write.csv((proc.time() - ptm)[2],"time_for_svmPoly_yeo.csv")
 
 
 svmPoly_female <- train(x = input_x_female,
@@ -1542,16 +1278,11 @@ tune_control <- caret::trainControl(
 )
 
 #train models
-#start the clock
-ptm <- proc.time()
+
 
 svmRadial_male <- train(x = input_x_male,
   y = input_y_male,method = "svmRadial", trControl = tune_control, preProcess = c("center","scale"),
     tuneGrid = expand.grid(sigma=seq(sigest(as.matrix(input_x_male),scaled = TRUE)[1],sigest(as.matrix(input_x_male),scaled = TRUE)[3],length.out=5),C=c(0.25,.5,1,2,4)))
-
-
-
-write.csv((proc.time() - ptm)[2],"time_for_svmRadial_yeo.csv")
 
 
 svmRadial_female <- train(x = input_x_female,
